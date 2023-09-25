@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tensorflow.keras.preprocessing import image
 
-#Insert your own local file directory for the image here
-file = '/Users/madelinesimpson/PycharmProjects/HTR/microscope.jpeg'
+#Insert your own local file directory for the image (testworm.jpg) here
+file = '/Users/madelinesimpson/PycharmProjects/HTR/testworm.jpg'
 
 img = image.load_img(file)
 
