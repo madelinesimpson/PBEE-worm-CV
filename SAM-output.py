@@ -9,6 +9,7 @@ img = image.load_img(file)
 img_array = image.img_to_array(img, dtype="uint8")
 img_array = cv2.cvtColor(img_array, cv2.COLOR_BGR2RGB)
 
+#This only works after you've run image_thresholding.py and the model "masks.pkl" is saved to your directory 
 with open('/Users/madelinesimpson/PycharmProjects/HTR/masks.pkl', 'rb') as fp:
     masks = pickle.load(fp)
 
