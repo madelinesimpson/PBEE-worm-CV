@@ -4,12 +4,14 @@ import cv2
 import pickle
 from tensorflow.keras.preprocessing import image
 
+#Insert your specific path to testworm.jpg here:
 file = '/Users/madelinesimpson/PycharmProjects/HTR/testworm.jpg'
 img = image.load_img(file)
 img_array = image.img_to_array(img, dtype="uint8")
 img_array = cv2.cvtColor(img_array, cv2.COLOR_BGR2RGB)
 
-#This only works after you've run image_thresholding.py and the model "masks.pkl" is saved to your directory 
+#This only works after you've run image_thresholding.py and the model "masks.pkl" is saved to your directory
+#Insert your specific path to masks.pkl here:
 with open('/Users/madelinesimpson/PycharmProjects/HTR/masks.pkl', 'rb') as fp:
     masks = pickle.load(fp)
 
