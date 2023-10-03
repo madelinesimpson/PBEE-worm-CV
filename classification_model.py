@@ -10,20 +10,36 @@ from tensorflow.keras.preprocessing import image
 import matplotlib.pyplot as plt
 import random
 import matplotlib.pyplot as image
+import seaborn as sns
 
 from PIL import Image
 
-
-image_size = (590,696)
 batch_size = 32
+labels = []
+alive_size = len(os.listdir('./test/alive/'))
+dead_size = len(os.listdir('./test/dead/'))
+cluster_size = len(os.listdir('./test/cluster/'))
+
+for i in range(0,alive_size):
+    labels.append(0)
+
+for i in range(0,dead_size):
+    labels.append(1)
+
+for i in range(0,cluster_size):
+    labels.append(2)
+
+print(len(labels))
+print(labels)
 
 train_ds, val_ds = tf.keras.utils.image_dataset_from_directory(
         "test",
-        validation_split = 0.3,
+        validation_split = 0.2,
         subset = "both",
-        labels = "inferred",
+        labels = labels,
+        label_mode = "categorical",
         seed = 1337,
-        image_size = image_size,
+        image_size = (590,696),
         batch_size = batch_size,
 )
 data_augmentation = keras.Sequential(
@@ -41,76 +57,38 @@ train_ds = train_ds.map(
 train_ds = train_ds.prefetch(tf.data.AUTOTUNE)
 val_ds = val_ds.prefetch(tf.data.AUTOTUNE)
 
-def make_model(input_shape, num_classes):
-    inputs = keras.Input(shape=input_shape)
+input_shape = (590,696,3)
 
-    # Entry block
-    x = layers.Rescaling(1.0 / 255)(inputs)
-    x = layers.Conv2D(128, 3, strides=2, padding="same")(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.Activation("relu")(x)
+model = keras.Sequential(
+    [
+        keras.Input(shape=input_shape),
+        layers.Rescaling(1.0/255),
 
-    previous_block_activation = x  # Set aside residual
+        layers.Conv2D(32,3,padding="same",activation="relu", input_shape=input_shape),
+        layers.MaxPooling2D(pool_size=(2,2)),
 
-    for size in [256, 512, 728]:
-        x = layers.Activation("relu")(x)
-        x = layers.SeparableConv2D(size, 3, padding="same")(x)
-        x = layers.BatchNormalization()(x)
+        layers.Conv2D(32,3,padding="same",activation="relu"),
+        layers.MaxPooling2D(pool_size=(2,2)),
 
-        x = layers.Activation("relu")(x)
-        x = layers.SeparableConv2D(size, 3, padding="same")(x)
-        x = layers.BatchNormalization()(x)
+        layers.Conv2D(64,3,padding="same",activation="relu"),
+        layers.MaxPooling2D(pool_size=(2,2)),
 
-        x = layers.MaxPooling2D(3, strides=2, padding="same")(x)
-
-        # Project residual
-        residual = layers.Conv2D(size, 1, strides=2, padding="same")(
-            previous_block_activation
-        )
-        x = layers.add([x, residual])  # Add back residual
-        previous_block_activation = x  # Set aside next residual
-
-    x = layers.SeparableConv2D(1024, 3, padding="same")(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.Activation("relu")(x)
-
-    x = layers.GlobalAveragePooling2D()(x)
-    if num_classes == 2:
-        activation = "sigmoid"
-        units = 1
-    else:
-        activation = "softmax"
-        units = num_classes
-
-    x = layers.Dropout(0.5)(x)
-    outputs = layers.Dense(units, activation=activation)(x)
-    return keras.Model(inputs, outputs)
-
-
-model = make_model(input_shape=image_size + (3,), num_classes=2)
-keras.utils.plot_model(model, show_shapes=True)
+        layers.Flatten(),
+        layers.Dense(3,activation="softmax")
+    ]
+)
 
 epochs = 15
 
-callbacks = [
-    keras.callbacks.ModelCheckpoint("save_at_{epoch}.keras"),
-]
 model.compile(
-    optimizer=keras.optimizers.Adam(1e-3),
-    loss="binary_crossentropy",
+    optimizer="adam",
+    loss="categorical_crossentropy",
     metrics=["accuracy"],
 )
 model.fit(
     train_ds,
     epochs=epochs,
-    callbacks=callbacks,
     validation_data=val_ds,
 )
 
-img = keras.utils.load_img("./guess.png")
-img_array = keras.utils.img_to_array(img)
-img_array = tf.expand_dims(img_array, 0)  # Create batch axis
-
-predictions = model.predict(img_array)
-class_labels = np.argmax(predictions, axis=-1)
-print(class_labels)
+model.save("./classification_model.h5")
