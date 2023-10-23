@@ -1,4 +1,6 @@
 import os
+import re
+
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -138,12 +140,18 @@ def rectangleCrop(image, endpoints, xMin, xMax, yMin, yMax):
 	endpoint_y1 = endpoints[0][0]
 	endpoint_y2 = endpoints[1][0]
 
+	vert = False
+
 	#Find equation of line between endpoints
-	endpoint_line_slope = (endpoint_y2-endpoint_y1)/(endpoint_x2-endpoint_x1)
-	endpoint_line_y_intercept = endpoint_y1 - (endpoint_line_slope*endpoint_x1)
+	if endpoint_x1==endpoint_x2:
+		vert = True
+		endpoint_line_slope=100000
+	else:
+		endpoint_line_slope = (endpoint_y2-endpoint_y1)/(endpoint_x2-endpoint_x1)
+		endpoint_line_y_intercept = endpoint_y1 - (endpoint_line_slope*endpoint_x1)
 
 	#Make sure we dont divide by zero and calculate the slope of the line perpendicular to the line between endpoints to use as rectangle boundaries
-	if endpoint_line_slope==0:
+	if endpoint_line_slope==0 or vert==True:
 		perpendicular_slope=0
 	else:
 		perpendicular_slope = -(1 / endpoint_line_slope)
@@ -152,7 +160,24 @@ def rectangleCrop(image, endpoints, xMin, xMax, yMin, yMax):
 	corners = []
 
 	#Special case for if the slope of the endpoint line is 0
-	if endpoint_line_slope==0:
+	if vert==True:
+		if yDist <= 100:
+			rect_thick = 4
+		elif yDist > 100 and yDist < 300:
+			rect_thick = 6
+		else:
+			rect_thick = 8
+
+		top_negative_x = xMax
+		top_negative_y = yMax - rect_thick
+		top_positive_x = xMax
+		top_positive_y = yMax + rect_thick
+		bottom_negative_x = xMin
+		bottom_negative_y = yMin - rect_thick
+		bottom_positive_x = xMin
+		bottom_positive_y = yMin + rect_thick
+
+	elif endpoint_line_slope==0:
 		#Use length of line extended to the min and max X of the worm to determine how thick rectangle will be
 		if xDist <= 100:
 			rect_thick = 4
@@ -187,14 +212,13 @@ def rectangleCrop(image, endpoints, xMin, xMax, yMin, yMax):
 			rect_thick = 8
 
 		#Find the equation of the two lines perpendicular to the endpoint line that intersect at the xMin and xMax
-		perpendicular_top_y_intercept = y_for_x_min - (perpendicular_slope*xMax)
-		perpendicular_bottom_y_intercept = y_for_x_max - (perpendicular_slope*xMin)
+		perpendicular_top_y_intercept = y_for_x_max - (perpendicular_slope*xMax)
+		perpendicular_bottom_y_intercept = y_for_x_min - (perpendicular_slope*xMin)
 
 		#Really ugly equation I derived to calculate the coordinates for each perpendicular line that extend it by rect_thick in each direction (the corners of the rectangle)
 		x = Symbol('x')
 		top_result = solve(((x - xMax) * (x - xMax)) + (((perpendicular_slope * x + perpendicular_top_y_intercept) - y_for_x_max) * ((perpendicular_slope * x + perpendicular_top_y_intercept) - y_for_x_max)) - (rect_thick * rect_thick), x)
 		bottom_result = solve(((x - xMin) * (x - xMin)) + (((perpendicular_slope * x + perpendicular_bottom_y_intercept) - y_for_x_min) * ((perpendicular_slope * x + perpendicular_bottom_y_intercept) - y_for_x_min)) - (rect_thick * rect_thick), x)
-
 		#Get the x values of the 4 points
 		top_negative_x = top_result[0].evalf()
 		top_positive_x = top_result[1].evalf()
@@ -270,28 +294,45 @@ def rectangleCrop(image, endpoints, xMin, xMax, yMin, yMax):
 	return warped
 
 #Testing code I was using for one image
+
 '''
-input = cv2.imread('./test/alive/alive 3.png')
+input = cv2.imread('./test/alive/alive 9.png')
 input = cv2.cvtColor(input, cv2.COLOR_BGR2GRAY)
 skeleton_image = zhangSuen(input).astype("float32")
 normalized_skeleton_image = skeleton_image / 255.0
 endpoints = findEndpoints(skeleton_image)
-intput = cv2.cvtColor(input, cv2.COLOR_GRAY2RGB)
+print(endpoints)
+input = cv2.cvtColor(input, cv2.COLOR_GRAY2RGB)
 if len(endpoints)==2:
 		xMin,xMax,yMin,yMax = findBoundingCoords(normalized_skeleton_image)
-		result = findRectCoords(input, endpoints, xMin, xMax, yMin, yMax)
+		print(xMin, xMax, yMin, yMax)
+		result = rectangleCrop(input, endpoints, xMin, xMax, yMin, yMax)
 
 plt.figure()
-plt.imshow(result)
+plt.imshow(input)
 plt.show()
 '''
 
-
 #Applying rectangle transformation to all the worms in the dataset
-i=101
-j=101
-data = []
+alive_list=[]
+dead_list=[]
 for file in os.listdir('./test/alive/'):
+	alive_list.append(file)
+
+for file in os.listdir('./test/dead/'):
+	dead_list.append(file)
+
+alive_list.sort(key=lambda test_string: list(
+		map(int, re.findall(r'\d+', test_string)))[0])
+
+dead_list.sort(key=lambda test_string: list(
+		map(int, re.findall(r'\d+', test_string)))[0])
+
+i=1
+j=1
+
+data = []
+for file in alive_list:
 	image = './test/alive/' + file
 	input = cv2.imread(image)
 	input = cv2.cvtColor(input, cv2.COLOR_BGR2GRAY)
@@ -308,16 +349,21 @@ for file in os.listdir('./test/alive/'):
 		xMin,xMax,yMin,yMax = findBoundingCoords(normalized_skeleton_image)
 		#Get the rectangle iamge
 		warped = rectangleCrop(input, endpoints, xMin, xMax, yMin, yMax)
+		#Rotate to horizontal if image is vertical
+		if(warped.shape[0]>warped.shape[1]):
+			 warped = cv2.rotate(warped, cv2.ROTATE_90_CLOCKWISE)
 		#Write it to a new directory
 		directory = './rectangles/alive/aliverect ' + str(i) + '.png'
 		cv2.imwrite(directory, warped)
-		print(i, ' alive picture added')
+		print(file, 'made into rectangle')
 		i+=1
 	else:
+		print(file + " skipped")
+		i+=1
 		continue
 
 #Do the same for the directory of dead worms
-for file in os.listdir('./test/dead/'):
+for file in dead_list:
 	image = './test/dead/' + file
 	input = cv2.imread(image)
 	input = cv2.cvtColor(input, cv2.COLOR_BGR2GRAY)
@@ -327,9 +373,13 @@ for file in os.listdir('./test/dead/'):
 	if len(endpoints)==2:
 		xMin,xMax,yMin,yMax = findBoundingCoords(normalized_skeleton_image)
 		warped = rectangleCrop(input, endpoints, xMin, xMax, yMin, yMax)
+		if(warped.shape[0]>warped.shape[1]):
+			 warped = cv2.rotate(warped, cv2.ROTATE_90_CLOCKWISE)
 		directory = './rectangles/dead/deadrect ' + str(j) + '.png'
 		cv2.imwrite(directory, warped)
-		print(j, ' dead picture added')
+		print(file, 'made into rectangle')
 		j += 1
 	else:
+		print(file + " skipped")
+		j += 1
 		continue
