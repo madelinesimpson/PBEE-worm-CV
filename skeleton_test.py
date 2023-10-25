@@ -311,7 +311,7 @@ if len(endpoints)==2:
 plt.figure()
 plt.imshow(input)
 plt.show()
-'''
+
 
 #Applying rectangle transformation to all the worms in the dataset
 alive_list=[]
