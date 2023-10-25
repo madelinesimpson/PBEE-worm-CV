@@ -26,6 +26,7 @@ input_shape = (10,100,3)
 
 model = keras.Sequential(
     [
+        layers.RandomFlip(),
         keras.Input(shape=input_shape),
         layers.Conv2D(32, kernel_size=(3, 3), activation="relu"),
         layers.MaxPooling2D(pool_size=(2, 2)),
