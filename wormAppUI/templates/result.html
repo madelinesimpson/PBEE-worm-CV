@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Result</title>
+    </head>
+    <body onload="loadImage()">
+        <p>Alive count: {{ alive_count }}</p>
+        <p>Dead count: {{ dead_count }}</p>
+        <p>Cluster count: {{ cluster_count }}</p>
+        <p>Further processing count: {{ further_processing_count }}</p>
+        <p>Total worms (not including clusters): {{ total_without_clusters }}</p>
+        <img src="" id="event-1">
+        <script type="text/javascript">
+            function loadImage() {
+                const a1 = "/contour/{{ contour_image }}";
+                const image = document.getElementById("event-1");
+                image.src = a1;
+            }
+        </script>
+    </body>
+</html>

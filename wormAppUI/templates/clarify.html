@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+
+<html lang="en" dir="ltr">
+    <head>
+        <meta charset="utf-8">
+        <title>Clarification</title>
+    </head>
+    <body>
+        <h1>Clarification</h1>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+        <script>
+            var dir = "/Users/madelinesimpson/wormAppUI/wormAppUI/individual_worms";
+            var fileextension = ".png";
+            $.ajax({
+                //This will retrieve the contents of the folder if the folder is configured as 'browsable'
+                url: dir,
+                success: function (data) {
+                    //List all .png file names in the page
+                    $(data).find("a:contains(" + fileextension + ")").each(function () {
+                        var filename = this.href.replace(window.location.host, "").replace("http://", "");
+                        $("body").append("<img src='" + dir + filename + "'>");
+                    });
+                }
+            });
+        </script>
+    </body>
+</html>
