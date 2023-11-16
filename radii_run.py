@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import individual_worm_data as worm
 
-image = cv2.imread('./alive 5.png')
+image = cv2.imread('./alive 4.png')
 
 skeleton = image.copy()
 skeleton = cv2.cvtColor(skeleton, cv2.COLOR_BGR2GRAY)
@@ -32,14 +32,13 @@ radius_calculation_image = np.expand_dims(radius_calculation_image, -1)
 cv2.drawContours(radius_calculation_image, contours, 0, (255, 255, 255), 1)
 #radius_calculation_image = cv2.cvtColor(radius_calculation_image, cv2.COLOR_GRAY2RGB)
 
-print(worm_orientation)
-cp_dist = 6
+cp_dist = 8
 control_points = []
 
 cp_image = radius_calculation_image.copy()
 cp_image = cv2.cvtColor(cp_image, cv2.COLOR_GRAY2RGB)
 
-i=1
+i=0
 for coord in sorted_skeleton_array:
     if i%cp_dist==0:
         cp_image[coord[0]][coord[1]][0] = 255
@@ -48,13 +47,27 @@ for coord in sorted_skeleton_array:
         control_points.append(coord)
     i+=1
 
-radii = worm.findRadii(radius_calculation_image, worm_orientation, sorted_skeleton_array, control_points, xMin, xMax, yMin, yMax)
-print(radii)
+image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-#skeleton /= 255.0
-#radius_calculation_image = radius_calculation_image / 255.0
+for coord in control_points:
+    cp_image[coord[0]][coord[1]][0] = 0
+    cp_image[coord[0]][coord[1]][1] = 255
+    cp_image[coord[0]][coord[1]][2] = 0
 
-#both = cv2.bitwise_or(skeleton, radius_calculation_image)
+radii = worm.circles(control_points, image)
+for data in radii:
+    cv2.circle(cp_image, data[0], data[1], (255,0,0),1)
+
+swapped = control_points
+for i in range(0,len(swapped)):
+    x = swapped[i][1]
+    y = swapped[i][0]
+    swapped[i] = (x,y)
+
+normalized_points = worm.normalize_points(control_points)
+min_eucledian_dist, rotation_factor = worm.find_rotation_factor(normalized_points)
+rotated_points = worm.rotate_points(normalized_points, rotation_factor)
+print(rotated_points)
 
 plt.figure()
 plt.imshow(cp_image)
