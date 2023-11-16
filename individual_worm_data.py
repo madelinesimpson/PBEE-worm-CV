@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
-
+import math
 def findBoundingCoords(normalized_skeleton_image):
     xMin = 1000
     yMin = 1000
@@ -171,89 +171,57 @@ def sortSkeletonArray(skeleton_array, orientation):
         skeleton_array.sort(key=lambda unsorted_skeleton_array: unsorted_skeleton_array[1])
     return skeleton_array
 
-def findRadii(data_image, orientation, sorted_skeleton_array, control_points, xMin, xMax, yMin, yMax):
+def circles(control_points, grayscale_worm):
     radii = []
+    grayscale_worm = grayscale_worm/255.0
     for coord in control_points:
-        points = []
-        skel_index = sorted_skeleton_array.index(coord)
-        before = sorted_skeleton_array[skel_index-1]
-        after = sorted_skeleton_array[skel_index+ 1]
-        if orientation == "vertical":
-            if before[0] == coord[0] or after[0] == coord[0]:
-                for y in range(coord[1]-20, coord[1]+20):
-                    if data_image[coord[0]][y] != 0:
-                        points.append(y)
-                radius = 0
-                for i in range(0, len(points) - 1):
-                    value = abs(points[i] - points[i + 1])
-                    if value > radius:
-                        radius = value
-                if radius==0:
-                    for y in range(coord[1] - 20, coord[1] + 20):
-                        if data_image[coord[0]][y] != 0:
-                            points.append(y)
-                    radius = 0
-                    for i in range(0, len(points) - 1):
-                        value = abs(points[i] - points[i + 1])
-                        if value > radius:
-                            radius = value
-                radii.append((coord, radius))
+        r=1
+        radius_done = False
+        compare_image = grayscale_worm.copy()
+        while radius_done!=True:
+            cv2.circle(compare_image, (coord[1], coord[0]), r, 1, 1)
+            comparison = cv2.bitwise_xor(compare_image, grayscale_worm)
+            value = np.count_nonzero(comparison)
+            if value!=0:
+                radius_done = True
             else:
-                for x in range(coord[0]-20, coord[0]+20):
-                    if data_image[x][coord[1]] != 0:
-                        points.append(x)
-                radius = 0
-                for i in range(0, len(points) - 1):
-                    value = abs(points[i] - points[i + 1])
-                    if value > radius:
-                        radius = value
-                if radius==0:
-                    for x in range(coord[0] - 20, coord[0] + 20):
-                        if data_image[x][coord[1]] != 0:
-                            points.append(x)
-                    radius = 0
-                    for i in range(0, len(points) - 1):
-                        value = abs(points[i] - points[i + 1])
-                        if value > radius:
-                            radius = value
-                radii.append((coord, radius))
-        else:
-            if before[1] == coord[1] or after[1] == coord[1]:
-                for y in range(coord[1]-20, coord[1]+20):
-                    if data_image[coord[0]][y] != 0:
-                        points.append(y)
-                radius = 0
-                for i in range(0, len(points)-1):
-                    value = abs(points[i] - points[i+1])
-                    if value>radius:
-                        radius = value
-                if radius==0:
-                    for x in range(coord[0] - 20, coord[0] + 20):
-                        if data_image[x][coord[1]] != 0:
-                            points.append(x)
-                    radius = 0
-                    for i in range(0, len(points) - 1):
-                        value = abs(points[i] - points[i + 1])
-                        if value > radius:
-                            radius = value
-                radii.append((coord, radius))
-            else:
-                for x in range(coord[0]-20, coord[0]+20):
-                    if data_image[x][coord[1]] != 0:
-                        points.append(x)
-                radius = 0
-                for i in range(0, len(points) - 1):
-                    value = abs(points[i] - points[i + 1])
-                    if value > radius:
-                        radius = value
-                if radius==0:
-                    for y in range(coord[1] - 20, coord[1] + 20):
-                        if data_image[coord[0]][y] != 0:
-                            points.append(y)
-                    radius = 0
-                    for i in range(0, len(points) - 1):
-                        value = abs(points[i] - points[i + 1])
-                        if value > radius:
-                            radius = value
-                radii.append((coord, radius))
+                r+=1
+        radii.append([(coord[1], coord[0]), r])
     return radii
+
+def normalize_points(control_points):
+    index = (len(control_points))//2
+    translation_factor = control_points[index]
+    translate_y = translation_factor[0]
+    translate_x = translation_factor[1]
+    for i in range(0, len(control_points)):
+        x = control_points[i][1] - translate_x
+        y = control_points[i][0] - translate_y
+        control_points[i] = (x,y)
+    return control_points
+
+def find_rotation_factor(normalized_control_points):
+    min_eucledian_dist = 1000000
+    rotation_factor = 0
+    theta = 0
+    while theta<math.pi:
+        dist = 0
+        for coord in normalized_control_points:
+            x = coord[0] * math.cos(theta) - coord[1] * math.sin(theta)
+            squared = x*x
+            dist+=squared
+        if dist<min_eucledian_dist:
+            min_eucledian_dist = dist
+            rotation_factor = theta
+        theta = theta + (math.pi/180)
+    return min_eucledian_dist, rotation_factor
+
+def rotate_points(normalized_control_points, rotation_factor):
+    for i in range(0, len(normalized_control_points)):
+        x = normalized_control_points[i][0] * math.cos(rotation_factor) - normalized_control_points[i][1] * math.sin(rotation_factor)
+        y = normalized_control_points[i][1] * math.cos(rotation_factor) + normalized_control_points[i][0] * math.sin(rotation_factor)
+        normalized_control_points[i] = (x,y)
+
+    return normalized_control_points
+
+
