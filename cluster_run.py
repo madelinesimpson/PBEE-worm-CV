@@ -5,7 +5,7 @@ import math
 import individual_worm_data as worm
 import cluster_worm_data as cluster
 
-image = cv2.imread('./cluster 9.png')
+image = cv2.imread('./cluster 6.png')
 
 skeleton = image.copy()
 skeleton = cv2.cvtColor(skeleton, cv2.COLOR_BGR2GRAY)
@@ -14,6 +14,10 @@ normalized = skeleton/255.0
 xMin, xMax, yMin, yMax = worm.findBoundingCoords(normalized)
 xMin, xMax, yMin, yMax = worm.padBounding(xMin, xMax, yMin, yMax)
 skeleton = worm.findSkeleton(skeleton, xMin, xMax, yMin, yMax)
+
+plt.figure()
+plt.imshow(skeleton)
+plt.show()
 
 endpoints = cluster.find_endpoints(skeleton)
 print(endpoints)
@@ -48,4 +52,3 @@ fig.add_subplot(rows, columns, 2)
 plt.imshow(skeleton)
 plt.show()
 '''
-
