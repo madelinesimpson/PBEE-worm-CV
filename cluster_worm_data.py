@@ -82,7 +82,7 @@ def find_intersections(skeleton, endpoints):
         current_y = directions[direction][1]
         while perp==False:
             path.append([current_x, current_y])
-            #print(current_x, ", ", current_y)
+            print(current_x, ", ", current_y)
             neighbours, indices = get_worm_neighbour_indices(current_x, current_y, skeleton)
             n = worm.get_neighbours(current_x, current_y, skeleton)
             pixel_count = np.count_nonzero(n)
@@ -96,6 +96,7 @@ def find_intersections(skeleton, endpoints):
             else:
                 prev_point = [prev_x, prev_y]
                 prev_prev_point = [prev_prev_x, prev_prev_y]
+                print(len(indices))
                 if prev_prev_point in neighbours:
                     index = neighbours.index(prev_prev_point)
                     neighbours.remove(prev_prev_point)
@@ -107,33 +108,70 @@ def find_intersections(skeleton, endpoints):
                 if len(neighbours)==2:
                     direction_of_point_one = indices[0]
                     direction_of_point_two = indices[1]
-                    #if (direction_of_point_one in perp_directions) or (direction_of_point_two in perp_directions):
-                       #print("perp intersect found")
-                        #intersections.append([current_x, current_y])
-                        #if len(path) < 10:
-                            #for point in path:
-                                #skeleton[point[0]][point[1]] = 0
-                        #perp = True
-                    #else:
-                    prev_prev_x = prev_x
-                    prev_prev_y = prev_y
-                    prev_x = current_x
-                    prev_y = current_y
-                    if direction_of_point_one == 1 or direction_of_point_one == 3 or direction_of_point_one == 5 or direction_of_point_one == 7:
-                        current_x = neighbours[0][0]
-                        current_y = neighbours[0][1]
+                    if direction_of_point_one in perp_directions:
+                        point = neighbours[0]
+                        new_neighbours, indices = get_worm_neighbour_indices(point[0], point[1], skeleton)
+                        if direction_of_point_one in indices:
+                            print("perp intersect found")
+                            intersections.append([current_x, current_y])
+                            perp=True
+                        else:
+                            prev_prev_x = prev_x
+                            prev_prev_y = prev_y
+                            prev_x = current_x
+                            prev_y = current_y
+                            if direction_of_point_one == 1 or direction_of_point_one == 3 or direction_of_point_one == 5 or direction_of_point_one == 7:
+                                current_x = neighbours[0][0]
+                                current_y = neighbours[0][1]
+                            else:
+                                current_x = neighbours[1][0]
+                                current_y = neighbours[1][1]
+                    elif direction_of_point_two in perp_directions:
+                        point = neighbours[1]
+                        new_neighbours, indices = get_worm_neighbour_indices(point[0], point[1], skeleton)
+                        if direction_of_point_two in indices:
+                            print("perp intersect found")
+                            intersections.append([current_x, current_y])
+                            perp=True
+                        else:
+                            prev_prev_x = prev_x
+                            prev_prev_y = prev_y
+                            prev_x = current_x
+                            prev_y = current_y
+                            if direction_of_point_one == 1 or direction_of_point_one == 3 or direction_of_point_one == 5 or direction_of_point_one == 7:
+                                current_x = neighbours[0][0]
+                                current_y = neighbours[0][1]
+                            else:
+                                current_x = neighbours[1][0]
+                                current_y = neighbours[1][1]
                     else:
-                        current_x = neighbours[1][0]
-                        current_y = neighbours[1][1]
+                        prev_prev_x = prev_x
+                        prev_prev_y = prev_y
+                        prev_x = current_x
+                        prev_y = current_y
+                        if direction_of_point_one == 1 or direction_of_point_one == 3 or direction_of_point_one == 5 or direction_of_point_one == 7:
+                            current_x = neighbours[0][0]
+                            current_y = neighbours[0][1]
+                        else:
+                            current_x = neighbours[1][0]
+                            current_y = neighbours[1][1]
                 else:
+                    print(len(indices))
                     direction_of_point = indices[0]
                     if direction_of_point in perp_directions:
-                        intersections.append([current_x, current_y])
-                        if len(path) < 10:
-                            for point in path:
-                                skeleton[point[0]][point[1]] = 0
-                        print("intersection found perp")
-                        perp = True
+                        point = neighbours[0]
+                        new_neighbours, indices = get_worm_neighbour_indices(point[0], point[1], skeleton)
+                        if direction_of_point in indices:
+                            print("perp intersect found")
+                            intersections.append([current_x, current_y])
+                            perp = True
+                        else:
+                            prev_prev_x = prev_x
+                            prev_prev_y = prev_y
+                            prev_x = current_x
+                            prev_y = current_y
+                            current_x = neighbours[0][0]
+                            current_y = neighbours[0][1]
                     else:
                         prev_prev_x = prev_x
                         prev_prev_y = prev_y
@@ -174,3 +212,7 @@ def find_intersections(skeleton, xMin, xMax, yMin, yMax):
                 continue
     return intersection_points
 '''
+
+#if len(path) < 10:
+                            #for point in path:
+                                #skeleton[point[0]][point[1]] = 0
