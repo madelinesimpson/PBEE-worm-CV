@@ -138,7 +138,7 @@ def find_intersections(skeleton, endpoints):
             pixel_count = np.count_nonzero(n)
 
             if pixel_count>4:
-                print("intersection found > 4")
+                #print("intersection found > 4")
                 if len(path) < 15:
                     for point in path:
                         skeleton[point[0]][point[1]] = 0
@@ -170,7 +170,7 @@ def find_intersections(skeleton, endpoints):
                         new_neighbours, new_indices = get_worm_neighbour_indices(point[0], point[1], skeleton)
 
                         if direction_of_point_one in new_indices:
-                            print("intersection found")
+                            #print("intersection found")
                             if len(path) < 15:
                                 for point in path:
                                     skeleton[point[0]][point[1]] = 0
@@ -188,7 +188,7 @@ def find_intersections(skeleton, endpoints):
                         new_neighbours, new_indices = get_worm_neighbour_indices(point[0], point[1], skeleton)
 
                         if direction_of_point_two in new_indices:
-                            print("intersection found")
+                            #print("intersection found")
                             if len(path) < 15:
                                 for point in path:
                                     skeleton[point[0]][point[1]] = 0
@@ -211,7 +211,7 @@ def find_intersections(skeleton, endpoints):
                         point = neighbours[0]
                         new_neighbours, new_indices = get_worm_neighbour_indices(point[0], point[1], skeleton)
                         if direction_of_point in new_indices:
-                            print("intersection found")
+                            #print("intersection found")
                             if len(path) < 15:
                                 for point in path:
                                     skeleton[point[0]][point[1]] = 0
@@ -226,7 +226,7 @@ def find_intersections(skeleton, endpoints):
 
                     else:
                         current_x, current_y, prev_x, prev_y, prev_prev_x, prev_prev_y = move_forward_one(current_x, current_y, prev_x, prev_y, neighbours)
-        print("endpoint")
+        #print("endpoint")
 
     skeleton = skeleton * 255.0
     return intersections, removed_endpoints, new_endpoints, skeleton
@@ -304,8 +304,18 @@ def get_branches(intersections, endpoints, skeleton):
                 if current_point in sphere:
                     touching_intersection=True
                     skip=True
-                    branches.append(path)
-                    print('branch found')
+                    if len(path) < 15:
+                        continue
+                    else:
+                        endpoints = []
+                        endpoints.append([x,y])
+                        endpoints.append(current_point)
+                        temp_dict = {
+                            "path": path,
+                            "endpoints": endpoints,
+                        }
+                        branches.append(temp_dict)
+                        #print('branch found')
             if skip==True:
                 continue
             else:
@@ -329,7 +339,8 @@ def get_branches(intersections, endpoints, skeleton):
     undone_points = []
     for coord in intersections:
         int_neighbours, int_indices = get_worm_neighbour_indices(coord[0], coord[1], skeleton)
-        for path in branches:
+        for branch in branches:
+            path = branch['path']
             for n in int_neighbours:
                 if n in path:
                     index = int_neighbours.index(n)
@@ -352,17 +363,17 @@ def get_paths_between_intersections(intersections, undone_points, skeleton):
     skeleton = skeleton / 255.0
     branches = []
     for coord in undone_points:
-        path = []
         x, y = coord[0], coord[1]
-        path.append([x, y])
         init_neighbours, init_indices = get_worm_neighbour_indices(x, y, skeleton)
         for point in init_neighbours:
-            if point in intersections:
+            if point in intersections: #or point in init_sphere:
                 index = init_neighbours.index(point)
                 init_neighbours.remove(point)
                 init_indices.pop(index)
         if len(init_neighbours) > 1:
             for i in range(0, len(init_neighbours)):
+                path = []
+                path.append([x, y])
                 if init_indices[i]==2 and ((1 in init_indices) or (3 in init_indices)):
                     continue
                 elif init_indices[i] == 4 and ((3 in init_indices) or (5 in init_indices)):
@@ -380,16 +391,21 @@ def get_paths_between_intersections(intersections, undone_points, skeleton):
                     while touching_intersection == False:
                         path.append([current_x, current_y])
                         current_point = [current_x, current_y]
-                        print(current_point)
                         for intersect in intersections:
                             sphere = get_intersection_sphere(intersect[0], intersect[1])
-                            # print(sphere)
                             if current_point in sphere:
                                 touching_intersection = True
                                 skip = True
-                                if len(path) > 5:
-                                    branches.append(path)
-                                    print('branch found')
+                                if len(path) > 10:
+                                    endpoints = []
+                                    endpoints.append([x, y])
+                                    endpoints.append(current_point)
+                                    temp_dict = {
+                                        "path": path,
+                                        "endpoints": endpoints,
+                                    }
+                                    branches.append(temp_dict)
+                                    #print('branch found')
                         if skip == True:
                             continue
                         else:
@@ -422,20 +438,28 @@ def get_paths_between_intersections(intersections, undone_points, skeleton):
     return branches
 
 def remove_repeat_branches(branches):
-    other_one = branches.copy()
-    blank = []
+    unique_branches = []
     for path in branches:
-        for other_path in branches:
-            if other_path==path:
-                continue
-            else:
-                in_common = 0
-                for points in other_path:
-                    if points in path:
-                        in_common = in_common + 1
-                if in_common>10:
-                    print(other_path)
-                    other_one.remove(path)
+        if len(unique_branches)==0:
+            unique_branches.append(path)
+        else:
+            done=False
+            for other_path in unique_branches:
+                if done==True:
+                    break
                 else:
-                    continue
-    return other_one
+                    in_common = 0
+                    for point in path:
+                        for other_point in other_path:
+                            if point==other_point:
+                                in_common += 1
+                    if in_common > 5:
+                        done=True
+                    else:
+                        continue
+            unique_branches.append(path)
+    return unique_branches
+
+def get_branch_og_worm(branch, image):
+
+    return
