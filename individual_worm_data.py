@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 import math
+
 def findBoundingCoords(normalized_skeleton_image):
     xMin = 1000
     yMin = 1000
@@ -134,16 +135,19 @@ def countNeighbouringPixels(skeleton, x, y):
     neighbours = get_neighbours(x, y, skeleton)
     return sum(neighbours) / 255
 
-def findImageOrientation(skeleton, xMin, xMax, yMin, yMax):
+def findImageOrientation(skeleton, xMin, xMax, yMin, yMax, endpoints):
     orientation = ""
+    '''
     (rows, cols) = np.nonzero(skeleton)
     endpoints = []
     for (r, c) in zip(rows, cols):
         counter = countNeighbouringPixels(skeleton, r, c)
         if counter == 1:
             endpoints.append((r, c))
+    '''
     xDist = xMax - xMin
     yDist = yMax - yMin
+    print(len(endpoints))
     endpoint_x1 = endpoints[0][1]
     endpoint_x2 = endpoints[1][1]
     endpoint_y1 = endpoints[0][0]
@@ -164,12 +168,23 @@ def findImageOrientation(skeleton, xMin, xMax, yMin, yMax):
 
     return orientation
 
-def sortSkeletonArray(skeleton_array, orientation):
+def sort_skeleton_array(skeleton_array, orientation):
     if orientation == "vertical":
         skeleton_array.sort(key=lambda unsorted_skeleton_array: unsorted_skeleton_array[0])
     else:
         skeleton_array.sort(key=lambda unsorted_skeleton_array: unsorted_skeleton_array[1])
     return skeleton_array
+
+def get_control_points(sorted_skeleton_array):
+    num_control_points = 19
+    control_points = []
+    spacing = len(sorted_skeleton_array)//num_control_points
+    i=0
+    for coord in sorted_skeleton_array:
+        if i % spacing == 0:
+            control_points.append(coord)
+        i += 1
+    return control_points
 
 def circles(control_points, grayscale_worm):
     radii = []
@@ -192,11 +207,11 @@ def circles(control_points, grayscale_worm):
 def normalize_points(control_points):
     index = (len(control_points))//2
     translation_factor = control_points[index]
-    translate_y = translation_factor[0]
-    translate_x = translation_factor[1]
+    translate_y = translation_factor[1]
+    translate_x = translation_factor[0]
     for i in range(0, len(control_points)):
-        x = control_points[i][1] - translate_x
-        y = control_points[i][0] - translate_y
+        x = control_points[i][0] - translate_x
+        y = control_points[i][1] - translate_y
         control_points[i] = (x,y)
     return control_points
 
@@ -220,8 +235,16 @@ def rotate_points(normalized_control_points, rotation_factor):
     for i in range(0, len(normalized_control_points)):
         x = normalized_control_points[i][0] * math.cos(rotation_factor) - normalized_control_points[i][1] * math.sin(rotation_factor)
         y = normalized_control_points[i][1] * math.cos(rotation_factor) + normalized_control_points[i][0] * math.sin(rotation_factor)
+        x = round(x, 3)
+        y = round(y, 3)
         normalized_control_points[i] = (x,y)
 
     return normalized_control_points
 
-
+def mirror_worm(rotated_control_points):
+    mirrored_coords = []
+    for coord in rotated_control_points:
+        x = coord[0]
+        y = coord[1]
+        mirrored_coords.append((-x,y))
+    return mirrored_coords
