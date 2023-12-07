@@ -56,6 +56,29 @@ def get_perp_directions(direction):
         perp_directions=[]
     return perp_directions
 
+def get_continuing_direction(direction):
+    cont_directions = []
+    direction = direction + 1
+    if direction == 1:
+        cont_directions = [1,2,8]
+    elif direction == 2:
+        cont_directions = [1,2,3]
+    elif direction == 3:
+        cont_directions = [2,3,4]
+    elif direction == 4:
+        cont_directions = [3,4,5]
+    elif direction == 5:
+        cont_directions = [4,5,6]
+    elif direction == 6:
+        cont_directions = [5,6,7]
+    elif direction == 7:
+        cont_directions = [6,7,8]
+    elif direction == 8:
+        cont_directions = [7,8,1]
+    else:
+        cont_directions = []
+    return cont_directions
+
 def get_direction(x, y, skeleton):
     direction = -1
     n = worm.get_neighbours(x, y, skeleton)
@@ -110,7 +133,12 @@ def move_intersection(x, y, skeleton):
     else:
         return [x-1, y-1]
 
-
+def point_touching_intersection(intersection, current_point):
+    touching = False
+    sphere = get_intersection_sphere(intersection[0], intersection[1])
+    if current_point in sphere:
+        touching = True
+    return touching
 def find_intersections(skeleton, endpoints):
     skeleton = skeleton/255.0
     intersections = []
@@ -118,6 +146,7 @@ def find_intersections(skeleton, endpoints):
     new_endpoints = []
 
     for coord in endpoints:
+        print("cur endpoint", coord)
         path = []
         perp = False
         x, y = coord[0], coord[1]
@@ -144,11 +173,26 @@ def find_intersections(skeleton, endpoints):
                         skeleton[point[0]][point[1]] = 0
                     removed_endpoints.append(coord)
                     new_endpoints.append([current_x, current_y])
+                    print(" < 4 new endpoint")
                 else:
                     intersections.append([current_x, current_y])
                 perp=True
 
             else:
+                for intersect in intersections:
+                    touching_intersection = point_touching_intersection(intersect, [current_x, current_y])
+                    if touching_intersection==True:
+                        if len(path) < 15:
+                            for point in path:
+                                skeleton[point[0]][point[1]] = 0
+                            removed_endpoints.append(coord)
+                            new_endpoints.append([current_x, current_y])
+                            print(" 2 neighb point one new endpoint")
+                        else:
+                            intersections.append([current_x, current_y])
+                    else:
+                        continue
+
                 prev_point = [prev_x, prev_y]
                 prev_prev_point = [prev_prev_x, prev_prev_y]
 
@@ -162,70 +206,89 @@ def find_intersections(skeleton, endpoints):
                     neighbours.remove(prev_point)
                     indices.pop(index)
 
-                if len(neighbours)==2:
-                    direction_of_point_one, direction_of_point_two = indices[0], indices[1]
+                if len(neighbours)==3:
+                    if len(path) < 15:
+                        for point in path:
+                            skeleton[point[0]][point[1]] = 0
+                        removed_endpoints.append(coord)
+                        new_endpoints.append([current_x, current_y])
+                    else:
+                        intersections.append([current_x, current_y])
+                    perp=True
 
+                elif len(neighbours)==2:
+                    direction_of_point_one, direction_of_point_two = indices[0], indices[1]
                     if direction_of_point_one in perp_directions:
                         point = neighbours[0]
                         new_neighbours, new_indices = get_worm_neighbour_indices(point[0], point[1], skeleton)
-
-                        if direction_of_point_one in new_indices:
+                        cont_directions = get_continuing_direction(direction_of_point_one)
+                        for cont_direct in cont_directions:
+                            if cont_direct in new_indices:
                             #print("intersection found")
-                            if len(path) < 15:
-                                for point in path:
-                                    skeleton[point[0]][point[1]] = 0
-                                removed_endpoints.append(coord)
-                                new_endpoints.append([current_x, current_y])
-                            else:
-                                intersections.append([current_x, current_y])
-                            perp=True
-
-                        else:
+                                if len(path) < 15:
+                                    for point in path:
+                                        skeleton[point[0]][point[1]] = 0
+                                    removed_endpoints.append(coord)
+                                    new_endpoints.append([current_x, current_y])
+                                    print(" 2 neighb point one new endpoint")
+                                else:
+                                    intersections.append([current_x, current_y])
+                                perp=True
+                                break
+                        if perp==False:
                             current_x, current_y, prev_x, prev_y, prev_prev_x, prev_prev_y = move_forward_two(current_x, current_y, prev_x, prev_y, direction_of_point_one, direction_of_point_two, neighbours)
 
                     elif direction_of_point_two in perp_directions:
                         point = neighbours[1]
                         new_neighbours, new_indices = get_worm_neighbour_indices(point[0], point[1], skeleton)
-
-                        if direction_of_point_two in new_indices:
-                            #print("intersection found")
-                            if len(path) < 15:
-                                for point in path:
-                                    skeleton[point[0]][point[1]] = 0
-                                removed_endpoints.append(coord)
-                                new_endpoints.append([current_x, current_y])
-                            else:
-                                intersections.append([current_x, current_y])
-                            perp=True
-
-                        else:
+                        cont_directions = get_continuing_direction(direction_of_point_two)
+                        for cont_direct in cont_directions:
+                            if cont_direct in new_indices:
+                                # print("intersection found")
+                                if len(path) < 15:
+                                    for point in path:
+                                        skeleton[point[0]][point[1]] = 0
+                                    removed_endpoints.append(coord)
+                                    new_endpoints.append([current_x, current_y])
+                                    print(" 2 neighb point 2 new endpoint")
+                                else:
+                                    intersections.append([current_x, current_y])
+                                perp = True
+                                break
+                        if perp==False:
                             current_x, current_y, prev_x, prev_y, prev_prev_x, prev_prev_y = move_forward_two(current_x, current_y, prev_x, prev_y, direction_of_point_one, direction_of_point_two, neighbours)
-
                     else:
                         current_x, current_y, prev_x, prev_y, prev_prev_x, prev_prev_y = move_forward_two(current_x, current_y, prev_x, prev_y, direction_of_point_one, direction_of_point_two, neighbours)
 
-                else:
+                elif len(indices)==1:
                     direction_of_point = indices[0]
 
                     if direction_of_point in perp_directions:
                         point = neighbours[0]
+                        cont_directions = get_continuing_direction(direction_of_point)
                         new_neighbours, new_indices = get_worm_neighbour_indices(point[0], point[1], skeleton)
-                        if direction_of_point in new_indices:
-                            #print("intersection found")
-                            if len(path) < 15:
-                                for point in path:
-                                    skeleton[point[0]][point[1]] = 0
-                                removed_endpoints.append(coord)
-                                new_endpoints.append([current_x, current_y])
-                            else:
-                                intersections.append([current_x, current_y])
-                            perp = True
-
-                        else:
+                        for cont_direct in cont_directions:
+                            if cont_direct in new_indices:
+                                #print("intersection found")
+                                if len(path) < 15:
+                                    for point in path:
+                                        skeleton[point[0]][point[1]] = 0
+                                    removed_endpoints.append(coord)
+                                    new_endpoints.append([current_x, current_y])
+                                    print(" 1 neighb new endpoint")
+                                else:
+                                    intersections.append([current_x, current_y])
+                                perp = True
+                                break
+                        if perp==False:
                             current_x, current_y, prev_x, prev_y, prev_prev_x, prev_prev_y = move_forward_one(current_x, current_y, prev_x, prev_y, neighbours)
 
                     else:
                         current_x, current_y, prev_x, prev_y, prev_prev_x, prev_prev_y = move_forward_one(current_x, current_y, prev_x, prev_y, neighbours)
+                else:
+                    print('no neighb new endpoint')
+                    new_endpoints.append([current_x, current_y])
+                    perp=True
         #print("endpoint")
 
     skeleton = skeleton * 255.0
