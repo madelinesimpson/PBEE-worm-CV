@@ -2,7 +2,7 @@
 
 *This is not a funtioning app*
 
-This is a central hub for code and resources used in Emily Smith's PBEE CV project. Put everything worked on in here just so we have it for later if needed.
+This is a central hub for code and resources used in the PBEE Worm CV project.
 
 Since this is such a hodgepodge of random files, let me clarify what different things are.
 
@@ -16,7 +16,7 @@ Here’s a link to the projects I used as references for writing this model:
 https://keras.io/examples/vision/image_classification_from_scratch/
 https://keras.io/examples/vision/mnist_convnet/
 
-For the cluster stuff I’m working on right now, you can check out “individual_worm_data.py” (plotting circles on individual worms), “cluster_worm_data.py” (separating clusters into branches and intersections, and plotting circles on those), and “cluster_run.py” (the code to run the functions in the other two files. 
+For the cluster problem that I’m working on right now, you can check out “individual_worm_data.py” (plotting circles on individual worms), “cluster_worm_data.py” (separating clusters into branches and intersections, and plotting circles on those), and “cluster_run.py” (the code to run the functions in the other two files. 
 
 Here is the research paper I am basing that work off of:
 https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3048333/
